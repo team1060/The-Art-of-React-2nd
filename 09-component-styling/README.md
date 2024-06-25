@@ -168,3 +168,72 @@ src 디렉터리에 styles라는 디렉터리를 생성하고, 그 안에 utils.
 
 이 문제점은 웹팩에서 Sass를 처리하는 sass-loader의 설정을 커스터마이징하여 해결할 수 있습니다. create-react-app으로 만든 프로젝트는 프로젝트 구조의 복잡도를 낮추기 위해 세부 설정이 모두 숨겨져 있습니다. 이를 커스터마이징하려면 프로젝트 디렉터리에서 npm eject 명령어를 통해 세부 섲렁을 모두 밖으로 꺼내 주어야 합니다.
 create-react-app에서는 기본적으로 Git 설정이 되어 있는데요, npm eject는 아직 Git에 커밋되지 않은 변화가 있다면 진행되지 않으니, 먼저 커밋해 주어야 합니다.
+
+이제 프로젝트 디렉터리에 config라는 디렉터리가 생성되었을 것입니다. 그 디렉터리 안에 들어있는 webpack.config.js를 열어보세요.
+그 파일에서 "sassRegex"라는 키워드를 찾아 보세요. 그러면 다음과 같은 코드가 나타날 것입니다.
+
+```jsx
+{
+  test: sassRegex,
+  exclude: sassModuleRegex,
+  use: getStyleLoaders(
+    {
+      importLoaders: 3,
+      sourceMap: isEnvProduction
+        ? shouldUseSourceMap
+        : isEnvDevelopment,
+      modules: {
+        mode: 'icss',
+      },
+    },
+    'sass-loader'
+  ).concat({
+    loader: require.resolve("sass-loader"),
+    options: {
+      sassOptions: {
+        includePaths: [paths.appSrc + "/styles"],
+      },
+    },
+  }),
+  sideEffects: true,
+},
+```
+
+설정 파일을 저장한 후, 서버를 껐다가 재시작하세요. 이제 utils.scss 파일을 불러올 때 현재 수정하고 있는 scss 파일 경로가 어디에 위치하더라도 앞부분에 상대 경로를 입력할 필요 없이 styles 디렉터리 기준 절대 경로를 사용하여 불러올 수 있습니다.
+
+> ```scss
+> @import "utils.scss";
+> ```
+
+하지만 새 파일을 생성할 때마다 utils.scss를 매번 이렇게 포함시키는 것도 귀찮을 수 있습니다. 그럴 때는 sass-loader의 additionalData 옵션을 설정하면 됩니다. additionalData 옵션을 설정하면 Sass 파일을 불러올 때마다 코드의 맨 윗부분에 특정 코드를 포함시켜 줍니다.
+webpack.config.js를 열어서 additionalData 필드를 설정할 수 있습니다.\
+
+```jsx
+{
+  test: sassRegex,
+  exclude: sassModuleRegex,
+  use: getStyleLoaders(
+    {
+      importLoaders: 3,
+      sourceMap: isEnvProduction
+        ? shouldUseSourceMap
+        : isEnvDevelopment,
+      modules: {
+        mode: 'icss',
+      },
+    },
+    'sass-loader'
+  ).concat({
+    loader: require.resolve("sass-loader"),
+    options: {
+      sassOptions: {
+        includePaths: [paths.appSrc + "/styles"],
+      },
+      additionalData: "@import 'utils';",
+    },
+  }),
+  sideEffects: true,
+},
+```
+
+이렇게 작성하고 개발 서버를 재시작하고 나면 모든 scss 파일에서 utils.scss를 자동으로 불러오므로, Sass에서 맨 윗줄에 있는 import 구문을 지워도 정상적으로 작동할 것입니다.
